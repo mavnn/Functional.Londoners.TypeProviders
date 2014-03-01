@@ -41,6 +41,8 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ProvidedTypes.fsi" />
+    <Compile Include="ProvidedTypes.fs" />
     <Compile Include="TypeProvider.fs" />
     <None Include="Script.fsx" />
   </ItemGroup>
