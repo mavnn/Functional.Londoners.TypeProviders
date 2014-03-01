@@ -38,11 +38,22 @@ type MyTypeProvider () as this =
             IsStatic = false,
             GetterCode = (fun args -> <@@ (%%args.[0] :> obj) :?> string @@>))
 
+    let prefixState =
+        ProvidedMethod(
+            "PrefixState",
+            [ProvidedParameter("Prefix", typeof<string>)],
+            typeof<string>,
+            IsStaticMethod = false,
+            InvokeCode = 
+                fun [self;prefix] -> 
+                    <@@ (%%prefix) + (%%self :> obj :?> string) @@>)
+
     do
         newType.AddMember(helloWorld)
         newType.AddMember(cons)
         newType.AddMember(paramCons)
         newType.AddMember(internalState)
+        newType.AddMember(prefixState)
 
     do
         this.AddNamespace(ns, [newType])
