@@ -26,9 +26,15 @@ type MyTypeProvider () as this =
             [],
             InvokeCode = fun _ -> <@@ "My internal state" :> obj @@>)
 
+    let paramCons =
+        ProvidedConstructor(
+            [ProvidedParameter("InternalState", typeof<string>)],
+            InvokeCode = fun args -> <@@ (%%(args.[0]) : string) :> obj @@>)
+
     do
         newType.AddMember(helloWorld)
         newType.AddMember(cons)
+        newType.AddMember(paramCons)
 
     do
         this.AddNamespace(ns, [newType])
