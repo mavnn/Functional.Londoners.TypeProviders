@@ -1,4 +1,11 @@
-﻿namespace ``F#unctional``.Londoners.TP
+﻿module ``F#unctional``.Londoners.TP
 
-type Class1() = 
-    member this.X = "F#"
+open ProviderImplementation.ProvidedTypes
+open Microsoft.FSharp.Core.CompilerServices
+
+[<TypeProvider>]
+type MyTypeProvider () =
+    inherit TypeProviderForNamespaces ()
+
+[<assembly:TypeProviderAssembly>]
+do ()
