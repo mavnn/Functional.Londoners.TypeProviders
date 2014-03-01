@@ -31,10 +31,18 @@ type MyTypeProvider () as this =
             [ProvidedParameter("InternalState", typeof<string>)],
             InvokeCode = fun args -> <@@ (%%(args.[0]) : string) :> obj @@>)
 
+    let internalState =
+        ProvidedProperty(
+            "InternalState",
+            typeof<string>,
+            IsStatic = false,
+            GetterCode = (fun args -> <@@ (%%args.[0] :> obj) :?> string @@>))
+
     do
         newType.AddMember(helloWorld)
         newType.AddMember(cons)
         newType.AddMember(paramCons)
+        newType.AddMember(internalState)
 
     do
         this.AddNamespace(ns, [newType])
