@@ -21,8 +21,14 @@ type MyTypeProvider () as this =
             IsStatic = true,
             GetterCode = (fun _ -> <@@ "Hello world" @@>))
 
+    let cons =
+        ProvidedConstructor(
+            [],
+            InvokeCode = fun _ -> <@@ "My internal state" :> obj @@>)
+
     do
         newType.AddMember(helloWorld)
+        newType.AddMember(cons)
 
     do
         this.AddNamespace(ns, [newType])
