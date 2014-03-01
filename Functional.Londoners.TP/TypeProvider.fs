@@ -14,6 +14,16 @@ type MyTypeProvider () as this =
     let newType = 
         ProvidedTypeDefinition(asm, ns, "NewType", Some typeof<obj>)
 
+    let helloWorld =
+        ProvidedProperty(
+            "Hello", 
+            typeof<string>, 
+            IsStatic = true,
+            GetterCode = (fun _ -> <@@ "Hello world" @@>))
+
+    do
+        newType.AddMember(helloWorld)
+
     do
         this.AddNamespace(ns, [newType])
 
