@@ -3,6 +3,8 @@
 open ProviderImplementation.ProvidedTypes
 open Microsoft.FSharp.Core.CompilerServices
 open System.Reflection
+open System.IO
+open System.Text.RegularExpressions
 
 [<TypeProvider>]
 type MyTypeProvider () as this =
@@ -11,52 +13,47 @@ type MyTypeProvider () as this =
     let ns = "F#unctional.Londoners.Provided"
     let asm = Assembly.GetExecutingAssembly()
 
-    let newType = 
-        ProvidedTypeDefinition(asm, ns, "NewType", Some typeof<obj>)
+    let findModelFields template =
+        let regex = Regex(@"{{ (?<fieldName>\S+) }}", RegexOptions.Compiled)
+        regex.Matches(template)
+        |> Seq.cast
+        |> Seq.map (fun (m : Match) -> m.Groups.["fieldName"].Value)
+        |> Seq.toList
 
-    let helloWorld =
-        ProvidedProperty(
-            "Hello", 
-            typeof<string>, 
-            IsStatic = true,
-            GetterCode = (fun _ -> <@@ "Hello world" @@>))
+    let templates =
+        Directory.GetFiles(@"C:\Temp", "*.t_t")
+        |> Seq.map (fun f ->
+            Path.GetFileNameWithoutExtension(f), File.ReadAllText(f))
 
-    let cons =
-        ProvidedConstructor(
-            [],
-            InvokeCode = fun _ -> <@@ "My internal state" :> obj @@>)
+    let createTemplateType (name, template) =
+        let modelFields = findModelFields template
+        let templateType = ProvidedTypeDefinition(asm, ns, name, Some typeof<obj>)
 
-    let paramCons =
-        ProvidedConstructor(
-            [ProvidedParameter("InternalState", typeof<string>)],
-            InvokeCode = fun args -> <@@ (%%(args.[0]) : string) :> obj @@>)
+        let render =
+            let m = ProvidedMethod(
+                        "Render",
+                        modelFields |> List.map (fun f -> ProvidedParameter(f, typeof<string>)),
+                        typeof<string>)
+            m.InvokeCode <-
+                fun args ->
+                    let folder values arg =
+                        <@ (%%arg:string)::%values @>
+                    let fieldValues = args |> List.fold folder <@ [] @>
+                    <@
+                        let fields = List.zip modelFields (%fieldValues |> List.rev)
+                        let folder (state : string) (field : string * string) =
+                            state.Replace("{{ " + fst field + " }}", snd field)
+                        fields
+                        |> List.fold folder template
+                    @>.Raw
+            m.IsStaticMethod <- true
+            m
 
-    let internalState =
-        ProvidedProperty(
-            "InternalState",
-            typeof<string>,
-            IsStatic = false,
-            GetterCode = (fun args -> <@@ (%%args.[0] :> obj) :?> string @@>))
-
-    let prefixState =
-        ProvidedMethod(
-            "PrefixState",
-            [ProvidedParameter("Prefix", typeof<string>)],
-            typeof<string>,
-            IsStaticMethod = false,
-            InvokeCode = 
-                fun [self;prefix] -> 
-                    <@@ (%%prefix) + (%%self :> obj :?> string) @@>)
-
-    do
-        newType.AddMember(helloWorld)
-        newType.AddMember(cons)
-        newType.AddMember(paramCons)
-        newType.AddMember(internalState)
-        newType.AddMember(prefixState)
+        templateType.AddMember(render)
+        templateType
 
     do
-        this.AddNamespace(ns, [newType])
+        this.AddNamespace(ns, [for t in templates -> createTemplateType t])
 
 [<assembly:TypeProviderAssembly>]
 do ()
