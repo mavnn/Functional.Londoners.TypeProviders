@@ -26,24 +26,54 @@ type MyTypeProvider () as this =
             Path.GetFileNameWithoutExtension(f), File.ReadAllText(f))
 
     let createTemplateType (name, template) =
-        let modelFields = findModelFields template
+        let modelFieldNames = findModelFields template
         let templateType = ProvidedTypeDefinition(asm, ns, name, Some typeof<obj>)
+
+        let (|IntField|DateField|StringField|) field =
+            match Seq.toList field with
+            | 'i'::':'::i ->
+                IntField (System.String.Concat i)
+            | 'd'::':'::date ->
+                DateField (System.String.Concat date)
+            | 's'::':'::str ->
+                StringField (System.String.Concat str)
+            | str ->
+                StringField (System.String.Concat str)
+
+        let fieldToParam field =
+            match field with
+            | IntField name ->
+                ProvidedParameter(name, typeof<int>)
+            | DateField name ->
+                ProvidedParameter(name, typeof<System.DateTime>)
+            | StringField name ->
+                ProvidedParameter(name, typeof<string>)
 
         let render =
             let m = ProvidedMethod(
                         "Render",
-                        modelFields |> List.map (fun f -> ProvidedParameter(f, typeof<string>)),
+                        modelFieldNames |> List.map fieldToParam,
                         typeof<string>)
             m.InvokeCode <-
                 fun args ->
-                    let folder values arg =
-                        <@ (%%arg:string)::%values @>
-                    let fieldValues = args |> List.fold folder <@ [] @>
+                    let folder values fieldAndValue =
+                        let name, valueExpr = fieldAndValue
+                        match name with
+                        | IntField _ ->
+                            <@ (name, string (%%valueExpr:int))::%values @>
+                        | DateField _ ->
+                            <@ (name, (%%valueExpr:System.DateTime).ToString())::%values @>
+                        | StringField _ ->
+                            <@ (name, (%%valueExpr:string))::%values @>
+
+                    let fieldsAndValues =
+                        List.zip modelFieldNames args
+
+                    let fields = fieldsAndValues |> List.fold folder <@ [] @>
                     <@
-                        let fields = List.zip modelFields (%fieldValues |> List.rev)
                         let folder (state : string) (field : string * string) =
                             state.Replace("{{ " + fst field + " }}", snd field)
-                        fields
+                        %fields
                         |> List.fold folder template
                     @>.Raw
             m.IsStaticMethod <- true

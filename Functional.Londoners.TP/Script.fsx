@@ -5,3 +5,5 @@
 open ``F#unctional``.Londoners
 
 Provided.test.Render("first", "second")
+
+Provided.TypedTemplate.Render(10, System.DateTime.Today, "A string")
