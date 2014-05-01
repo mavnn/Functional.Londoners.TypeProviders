@@ -4,6 +4,6 @@
 #r "bin/Debug/Functional.Londoners.TP.dll"
 open ``F#unctional``.Londoners
 
-Provided.test.Render("first", "second")
+type Temp = Provided.Template< @"c:\Temp">
 
-Provided.TypedTemplate.Render(10, System.DateTime.Today, "A string")
+Temp.TypedTemplate.Render(22, System.DateTime.Now, "My string!")
