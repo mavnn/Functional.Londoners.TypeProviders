@@ -1,0 +1,5 @@
+Let's make up some syntax!
+
+We'll have i:thing for ints -> {{ i:number }}
+How about d:thing for dates -> {{ d:date }}
+And s:thing for a string -> {{ s:string }}
